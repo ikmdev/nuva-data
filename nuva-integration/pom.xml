@@ -9,19 +9,90 @@
     </parent>
 
     <artifactId>nuva-integration</artifactId>
-    <packaging>pom</packaging>
+    <packaging>jar</packaging>
 
     <name>nuva-integration</name>
 
-    <!-- PLACEHOLDER: no build logic yet. Add the plugin configuration below when you implement this stage. -->
     <!-- ============================================================================
-         DEVELOPER TODO [integration-01]: Add integration checks
+         DEVELOPER TODO [integration-01]: Add integration tests
          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-         WHAT: Add integration tests (failsafe) that open the finished data store and assert concepts, descriptions and relationships match the source.
+         WHAT: Add integration tests (classes named *IT under src/test/java) that open the finished data
+               store and assert concepts, descriptions and relationships match the source. The failsafe
+               configuration below already passes the data store path and namespace to the tests as system
+               properties and forks a single JVM; add test dependencies (for example reasoner-elk-snomed,
+               or the transformation plugin for NuvaUtility) when a test needs them.
          INPUT: The data store after the reasoner (or after nuva-pipeline if there is no reasoner).
          OUTPUT: Passing integration tests; a failing one fails the build.
          EXAMPLE: Concept ABC1 (made-up) exists with its expected description text.
-         DONE WHEN: At least one test per kind (concept, description, relationship) runs against the data store and fails if the data store is absent.
-         REFERENCE: rxnorm-data/rxnorm-integration/pom.xml and rxnorm-data/rxnorm-integration/src/test/java/dev/ikm/tinkar/rxnorm/integration/ (AbstractIntegrationTest and the *SemanticIT classes).
+         DONE WHEN: At least one test per kind (concept, description, relationship) runs against the data store
+                    and fails if the data store is absent.
+         REFERENCE: rxnorm-data/rxnorm-integration/pom.xml and its
+                    src/test/java/dev/ikm/tinkar/rxnorm/integration (AbstractIntegrationTest and the *SemanticIT
+                    classes).
          ============================================================================ -->
+    <dependencies>
+        <!-- [integration-01] CONFIGURE: add test dependencies the tests need, for example reasoner-elk-snomed -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>coordinate</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>terms</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>entity-provider</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>executor-provider</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>search-provider</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.ikm.tinkar</groupId>
+            <artifactId>data-spinedarray-provider</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <reuseForks>false</reuseForks>
+                    <forkCount>1</forkCount>
+                    <systemPropertyVariables>
+                        <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>
+                        <origin.namespace>${origin.namespace}</origin.namespace>
+                        <!-- [integration-01] CONFIGURE (optional): further system properties for the tests -->
+                    </systemPropertyVariables>
+                    <argLine>-Xmx8g</argLine>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

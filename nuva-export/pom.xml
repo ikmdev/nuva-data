@@ -8,8 +8,13 @@
         <version>1.0.0-SNAPSHOT</version>
     </parent>
 
-    <groupId>dev.ikm.data.nuva</groupId>
-    <artifactId>nuva-export</artifactId>
+    <!--
+        Published coordinates follow the reference repositories: dev.ikm.tinkar.data:<dataset> (snomedct-international,
+        loinc, rxnorm), so downstream pipelines consume the data as dev.ikm.tinkar.data:nuva:<version>:<classifier>.
+        The module and its directory keep the name nuva-export.
+    -->
+    <groupId>dev.ikm.tinkar.data</groupId>
+    <artifactId>nuva</artifactId>
     <version>${revision}</version>
     <packaging>pom</packaging>
 
@@ -21,22 +26,11 @@
         <maven.deploy.skip>true</maven.deploy.skip>
     </properties>
 
-    <!-- PLACEHOLDER: no build logic yet. Add the plugin configuration below when you implement this stage. -->
-    <!-- ============================================================================
-         DEVELOPER TODO [export-01]: Package the transformed data for publishing
-         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-         WHAT: Package the data store into the artifacts consumers download (for example a data store zip and an interchange-format zip), attach them to the project, and publish ONLY when the deployExport profile and -DaltDeploymentRepository are given.
-         INPUT: The finished data store (dataStoreLocation/dataStore).
-         OUTPUT: Attached zip artifacts with classifiers; nothing deployed by default.
-         EXAMPLE: data store -> nuva-<version>-<classifier>.zip (made-up classifier).
-         DONE WHEN: `mvn install` attaches the zips locally; `mvn deploy` without -PdeployExport deploys nothing; with it, deploys to the given repository only.
-         REFERENCE: rxnorm-data/rxnorm-export/pom.xml (profile generateDataLocal, assembly reasoned-sa, tinkar-maven-plugin goal export-tinkar-data).
-         ============================================================================ -->
-
     <profiles>
         <!--
-            Same id and activation as the references. In the references this profile holds the packaging of the
-            exported artifacts; add it here when implementing export-01. It does NOT enable deployment.
+            Same id and activation as the references: active with -PgenerateDataLocal, or automatically when
+            -DaltDeploymentRepository is given. It builds the export artifacts but does NOT enable deployment: that
+            needs -PdeployExport as well. Modeled on rxnorm-data/rxnorm-export/pom.xml.
         -->
         <profile>
             <id>generateDataLocal</id>
@@ -45,6 +39,106 @@
                     <name>altDeploymentRepository</name>
                 </property>
             </activation>
+            <!-- ============================================================================
+                 DEVELOPER TODO [export-01]: Confirm the export artifacts
+                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                 WHAT: Confirm what consumers download. The profile below produces two zips attached to
+                       this module: a Protocol Buffers export (classifier reasoned-pb) and the data store
+                       itself (classifier reasoned-sa). Rename the classifiers if the data is not reasoned
+                       (drop the reasoner stage, or set the unreasoned parameter of export-tinkar-data),
+                       and change or add artifacts to match what the data owner publishes. Also confirm the published coordinates
+                   (dev.ikm.tinkar.data:nuva, the references' convention) with the data owner.
+                 INPUT: The finished data store at ${dataStoreLocation}/${dataStore}.
+                 OUTPUT: Attached zip artifacts with classifiers; nothing is deployed unless -PdeployExport
+                         is given.
+                 EXAMPLE: data store -> nuva-<version>-reasoned-pb.zip and nuva-<version>-reasoned-sa.zip.
+                 DONE WHEN: `mvn install -PgenerateDataLocal` attaches the zips locally; `mvn deploy` without
+                            -PdeployExport deploys nothing; with it, deploys to the given repository only.
+                 REFERENCE: rxnorm-data/rxnorm-export/pom.xml (export-tinkar-data, assembly reasoned-sa, attach-
+                            artifacts).
+                 ============================================================================ -->
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>dev.ikm.maven.tinkar</groupId>
+                        <artifactId>tinkar-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>${project.artifactId}-reasoned-export</id>
+                                <goals>
+                                    <goal>export-tinkar-data</goal>
+                                </goals>
+                                <configuration>
+                                    <exportDirectory>${project.build.directory}</exportDirectory>
+                                    <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
+                                    <!-- [export-01] CONFIGURE: classifier in the file name -->
+                                    <fileName>${project.artifactId}-${project.version}-reasoned-pb.zip</fileName>
+                                    <isolate>false</isolate>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Zips the data store. The assembly id becomes the classifier and Maven attaches the result itself. -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>assemble-data-store</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <configuration>
+                                    <inlineDescriptors>
+                                        <inlineDescriptor>
+                                            <!-- [export-01] CONFIGURE: classifier -->
+                                            <id>reasoned-sa</id>
+                                            <formats>
+                                                <format>zip</format>
+                                            </formats>
+                                            <fileSets>
+                                                <fileSet>
+                                                    <outputDirectory>.</outputDirectory>
+                                                    <directory>${dataStoreLocation}/${dataStore}</directory>
+                                                    <includes>
+                                                        <include>**</include>
+                                                    </includes>
+                                                </fileSet>
+                                            </fileSets>
+                                            <includeBaseDirectory>false</includeBaseDirectory>
+                                        </inlineDescriptor>
+                                    </inlineDescriptors>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <!-- Attaches the Protocol Buffers export written above. -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>build-helper-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-artifacts</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>attach-artifact</goal>
+                                </goals>
+                                <configuration>
+                                    <artifacts>
+                                        <artifact>
+                                            <file>${project.build.directory}/${project.artifactId}-${project.version}-reasoned-pb.zip</file>
+                                            <!-- [export-01] CONFIGURE: classifier (match the file name above) -->
+                                            <classifier>reasoned-pb</classifier>
+                                            <type>zip</type>
+                                        </artifact>
+                                    </artifacts>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
         </profile>
 
         <!-- Explicit opt-in to publish: mvn deploy -PdeployExport -DaltDeploymentRepository=<id>::<url> -->

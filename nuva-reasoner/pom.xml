@@ -13,15 +13,41 @@
 
     <name>nuva-reasoner</name>
 
-    <!-- PLACEHOLDER: no build logic yet. Add the plugin configuration below when you implement this stage. -->
     <!-- ============================================================================
-         DEVELOPER TODO [reasoner-01]: Run classification
+         DEVELOPER TODO [reasoner-01]: Choose the reasoner
          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-         WHAT: Classify the data store with the chosen reasoner so inferred relationships are stored. Optional: drop this module if no classification is required.
-         INPUT: The data store after owl-transform; property reasoner-type chooses the reasoner.
+         WHAT: Set the reasoner-type property in the parent pom.xml to the reasoner that suits the NUVA
+               data (ElkSnomedReasoner is the value rxnorm-data uses; the other services are ElkOwlReasoner
+               and HybridReasoner). Remove this module if no classification is required (see setup-02).
+         INPUT: The data store after owl-transform (or after nuva-pipeline if owl-transform is dropped).
          OUTPUT: The data store with inferred relationships.
          EXAMPLE: A is-a B, B is-a C (made-up) -> inferred A is-a C.
          DONE WHEN: A fixture data store gains exactly the expected inferred relationships.
-         REFERENCE: rxnorm-data/rxnorm-reasoner/pom.xml (tinkar-maven-plugin goal run-full-reasoner, property reasoner-type in rxnorm-data/pom.xml).
+         REFERENCE: rxnorm-data/rxnorm-reasoner/pom.xml (run-full-reasoner) and reasoner-type in rxnorm-
+                    data/pom.xml.
          ============================================================================ -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>dev.ikm.maven.tinkar</groupId>
+                <artifactId>tinkar-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>run-reasoner</id>
+                        <!-- Bound to install (the goal's default is earlier) so that `mvn test` needs no data store. -->
+                        <phase>install</phase>
+                        <goals>
+                            <goal>run-full-reasoner</goal>
+                        </goals>
+                        <configuration>
+                            <dataStore>${dataStoreLocation}/${dataStore}</dataStore>
+                            <!-- [reasoner-01] CONFIGURE: reasoner-type in the parent pom.xml -->
+                            <reasonerType>${reasoner-type}</reasonerType>
+                            <isolate>false</isolate>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

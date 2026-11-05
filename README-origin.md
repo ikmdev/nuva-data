@@ -29,7 +29,7 @@ expected file exists. If not, the build fails and lists **all** missing files wi
 
 ## 3. What origin packaging must produce
 
-Origin packaging is **not implemented** in this skeleton (TODOs `origin-01` .. `origin-04`, as comment blocks in the `generateDataLocal` profile of `nuva-origin/pom.xml`). When it is, it must produce:
+Origin packaging is a working stub: the `generateDataLocal` profile of `nuva-origin/pom.xml` unzips the source files, writes the manifest and zips the result. TODOs `origin-01` .. `origin-04` (comment blocks in that profile, with `[origin-NN] CONFIGURE` markers on the lines to change) cover confirming the folder names, narrowing the files kept, the manifest and the deploy. It produces:
 
 * a zip `nuva-origin-<nuva-origin.version>.zip` containing `src/<selected source files>` and `META-INF/MANIFEST.MF`
   (the layout used by the reference repositories),
@@ -44,8 +44,9 @@ mvn clean install --projects nuva-origin --also-make -PgenerateDataLocal -Dmaven
 ```
 
 * Source files missing: fails in the enforcer rule `require-origin-inputs`, listing every missing file.
-* Source files present, packaging not implemented: this module passes but produces no origin artifact, so
-  `nuva-pipeline` then fails because Maven cannot resolve `dev.ikm.data.nuva:nuva-origin:${nuva-origin.version}:zip`.
+* Source files present: the zip is built and installed to `~/.m2`. Without `-PgenerateDataLocal` this module produces no
+  artifact, so `nuva-pipeline` then fails because Maven cannot resolve
+  `dev.ikm.data.nuva:nuva-origin:${nuva-origin.version}:zip`.
 
 To deploy instead of install (never the default):
 

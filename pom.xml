@@ -146,6 +146,9 @@
         <dataStoreLocation>${project.basedir}/../datastore</dataStoreLocation>
         <dataStore>nuva</dataStore>
 
+        <!-- Reasoner used by nuva-reasoner. PLACEHOLDER (the value rxnorm-data uses): see TODO reasoner-01. -->
+        <reasoner-type>ElkSnomedReasoner</reasoner-type>
+
         <!-- Origin manifest metadata. PLACEHOLDERS. -->
         <packager.name>REPLACE_ME</packager.name>
         <origin.url>REPLACE_ME</origin.url>
@@ -184,6 +187,16 @@
             <dependency>
                 <groupId>dev.ikm.tinkar</groupId>
                 <artifactId>search-provider</artifactId>
+                <version>${tinkar-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.tinkar</groupId>
+                <artifactId>coordinate</artifactId>
+                <version>${tinkar-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.tinkar</groupId>
+                <artifactId>terms</artifactId>
                 <version>${tinkar-core.version}</version>
             </dependency>
             <dependency>

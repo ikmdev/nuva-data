@@ -30,6 +30,9 @@ never means data was produced unless every TODO in [doc/transformation-todo.md](
 
 3. Change local directory to `nuva-data`
 
+   Maven runs with the JVM options in [.mvn/jvm.config](.mvn/jvm.config) (copied from `rxnorm-data`: 12 GB maximum heap,
+   native access, the vector API module). Lower `-Xmx` there on a machine with less memory.
+
 ## Stage order
 
 Stages run in the order of the `<modules>` in `pom.xml` (the same order as `rxnorm-data`):
@@ -37,13 +40,13 @@ Stages run in the order of the `<modules>` in `pom.xml` (the same order as `rxno
 | # | Stage | Module | Status in the skeleton |
 |---|-------|--------|------------------------|
 | 0 | plugin | `plugin/nuva-transformation-maven-plugin`, `plugin/nuva-starterdata-maven-plugin` | the transformation code (`NuvaTransformer`: TODO `load-01`, `transform-01..03`, `validate-01..03`, `write-01`, `report-01`; `NuvaUtility` for helpers) and the starter-data Mojo (author concept done, TODO `starterdata-01`). Both depend on tinkar-core and tinkar-composer |
-| 1 | origin | `nuva-origin` | checks the source files exist (enforcer); packaging = TODO `origin-01..04` in the POM |
+| 1 | origin | `nuva-origin` | checks the source files exist (enforcer); `-PgenerateDataLocal` unzips, writes the manifest and packages the origin zip (stub; confirm with TODO `origin-01..04`) |
 | 2 | starterdata | `nuva-starterdata` | loads the base Tinkar starter data into `./datastore/nuva`, then adds the NUVA author; further starter data = TODO `starterdata-01` |
 | 3 | pipeline | `nuva-pipeline` | copies the origin artifact (`dependency:copy`), then runs the transformation |
-| 4 | owl-transform | `nuva-owl-transform` | empty placeholder POM, TODO `owl-01` (optional) |
-| 5 | reasoner | `nuva-reasoner` | empty placeholder POM, TODO `reasoner-01` (optional) |
-| 6 | integration | `nuva-integration` | empty placeholder POM, TODO `integration-01` |
-| 7 | export | `nuva-export` | empty placeholder POM, TODO `export-01`; publishes nothing unless `-PdeployExport` |
+| 4 | owl-transform | `nuva-owl-transform` | stub: runs the OWL transformer on the data store; TODO `owl-01` (optional) |
+| 5 | reasoner | `nuva-reasoner` | stub: runs the reasoner chosen by `reasoner-type`; TODO `reasoner-01` (optional) |
+| 6 | integration | `nuva-integration` | stub: failsafe and test dependencies configured, no tests yet; TODO `integration-01` |
+| 7 | export | `nuva-export` | stub: `-PgenerateDataLocal` builds the export zips; TODO `export-01`; publishes nothing unless `-PdeployExport` |
 
 `./run-data-pipeline.sh` (or `run-data-pipeline.bat`) runs the stages in order, prints each stage name, stops at the first
 failure, and supports `--skip <stage>` and `--dry-run`. Run `./run-data-pipeline.sh --help` for all options.
@@ -66,6 +69,12 @@ Transformation pipeline (after the origin artifact is in `~/.m2` or a configured
 mvn clean install -U -Dmaven.build.cache.enabled=false
 ```
 
+Build the export zips locally (installs them to `~/.m2`; nothing is deployed):
+
+```
+mvn clean install --projects nuva-export --also-make -PgenerateDataLocal -Dmaven.build.cache.enabled=false
+```
+
 Publish the transformed data (explicit opt-in; without `deployExport` nothing is deployed):
 
 ```
@@ -81,14 +90,15 @@ No real repository URL, credential or `settings.xml` content is stored in this r
 | `mvn clean compile` | passes | no source data needed |
 | `mvn test` | passes (3 skipped) | unit tests use temp directories; the 3 skipped tests wait for developer fixtures |
 | `mvn clean install` | **fails in `nuva-origin`**, enforcer rule `require-origin-inputs` | the source files are not in `~/Downloads`. The message lists **every** missing file with its full path. |
-| the same, with the source files present (`-Dinput.directory=<dir>`) | **fails in `nuva-pipeline`**, `dependency:copy` | `nuva-starterdata` succeeds first and creates `./datastore`; origin packaging is not implemented, so no origin artifact exists and Maven reports `Could not find artifact dev.ikm.data.nuva:nuva-origin:zip:<version>` |
+| the same, with the source files present (`-Dinput.directory=<dir>`) | **fails in `nuva-pipeline`**, `dependency:copy` | `nuva-starterdata` succeeds first and creates `./datastore`; without `-PgenerateDataLocal` the origin module builds no artifact, so Maven reports `Could not find artifact dev.ikm.data.nuva:nuva-origin:zip:<version>` |
 | the same, once the origin artifact is installed or deployed | **fails in `nuva-pipeline`**, goal `run-nuva-transformation` | `load-01 not implemented`, then each next TODO ID as you implement the stages |
 | GitHub Actions `build.yml` | red | same as `mvn clean install`; see the comment at the top of the workflow |
 
 The build fails when the origin artifact cannot be resolved (Maven's own dependency resolution) or when a transformation
 stage is unimplemented (it throws `UnsupportedOperationException` with its TODO ID, which the Mojo turns into a build
-failure). The optional stage modules (`nuva-starterdata`, `nuva-owl-transform`, `nuva-reasoner`, `nuva-integration`,
-`nuva-export`) are empty placeholders that build without error; their TODOs are tracked in the checklist only.
+failure). The stage modules after the pipeline (`nuva-owl-transform`, `nuva-reasoner`, `nuva-integration`,
+`nuva-export`) are working stubs that run the standard Tinkar goals against the data store; the TODO comment in each POM
+marks what to confirm. They do not fail on their own, so a green full build does not mean those TODOs are done.
 
 ## Developer Quick Start
 

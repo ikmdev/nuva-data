@@ -22,13 +22,15 @@ Obtain the licensed source files and place them in `~/Downloads` (see `README-or
 
 ## 1. Origin packaging (`nuva-origin`)
 
-The check that the source files exist already works (enforcer rule in `nuva-origin/pom.xml`). The packaging TODOs are
-comment blocks in the `generateDataLocal` profile of that POM; implement them with Maven plugin configuration.
+The check that the source files exist works (enforcer rule in `nuva-origin/pom.xml`). The `generateDataLocal` profile of
+that POM is a working stub modeled on the reference origin modules: it unzips the source files, writes the manifest and
+packages the origin zip. Each TODO block sits next to the plugin configuration it concerns, and `[origin-NN] CONFIGURE`
+comments mark the individual lines to change.
 
-- [ ] **origin-01** — Unpack the source archives
-- [ ] **origin-02** — Select and filter the required release files
-- [ ] **origin-03** — Produce the origin artifact (assembly + attach); add the plugins to `nuva-origin/pom.xml`
-- [ ] **origin-04** — Install locally or deploy the origin artifact
+- [ ] **origin-01** — Unzip the source archives: confirm one execution per source file and the folder names (`process-origin`, `process-additional-origin`)
+- [ ] **origin-02** — Select the required release files: narrow the `src` fileSet includes and excludes (`assemble-origin-artifact`)
+- [ ] **origin-03** — Confirm the manifest and artifact layout (`create-origin-manifest`, `assemble-origin-artifact`)
+- [ ] **origin-04** — Verify local install and deploy of the origin artifact (no POM change expected)
 
 ## 2. Starter data (`nuva-starterdata`)
 
@@ -56,13 +58,14 @@ place for shared helpers, and `tinkar-core` / `tinkar-composer` are already on t
 
 ## 4. Optional stage modules
 
-Empty placeholder modules. Each TODO block is a comment in the module's `pom.xml`; replace it with the real plugin
-configuration.
+Working stubs that run the standard Tinkar goals against the data store, modeled on `rxnorm-data`. Each TODO block is a
+comment in the module's `pom.xml`, next to the configuration to confirm; `[<id>] CONFIGURE` comments mark the lines where
+there is a setting to change.
 
-- [ ] **owl-01** — Run the optional OWL transformation (`nuva-owl-transform`)
-- [ ] **reasoner-01** — Run classification (`nuva-reasoner`)
-- [ ] **integration-01** — Add integration checks (`nuva-integration`)
-- [ ] **export-01** — Package the transformed data for publishing (`nuva-export`); never publish by default
+- [ ] **owl-01** — Confirm or drop the OWL transformation (`nuva-owl-transform`)
+- [ ] **reasoner-01** — Choose the reasoner (`nuva-reasoner`; property `reasoner-type` in the parent `pom.xml`)
+- [ ] **integration-01** — Add integration tests (`nuva-integration`; failsafe is configured, the `*IT` classes are yours)
+- [ ] **export-01** — Confirm the export artifacts and their coordinates (`nuva-export`, published as `dev.ikm.tinkar.data:nuva`; profile `generateDataLocal`; never publishes by default)
 
 ## 5. Developer-supplied test fixtures
 
