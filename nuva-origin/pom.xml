@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.ikm.nuva</groupId>
+        <artifactId>nuva-data</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <groupId>dev.ikm.data.nuva</groupId>
+    <artifactId>nuva-origin</artifactId>
+    <version>${revision}</version>
+    <packaging>pom</packaging>
+
+    <name>nuva-origin</name>
+
+    <properties>
+        <revision>${nuva-origin.version}</revision>
+    </properties>
+
+    <!--
+        SKELETON. Build behaviour on a fresh clone:
+          * `mvn test` / `mvn compile` are not affected (the check below runs at prepare-package).
+          * `mvn install` fails at prepare-package when a source file is missing from ${input.directory}; the enforcer
+            message lists every missing file with its full path.
+          * With the files present the build passes but produces no origin artifact (packaging is TODO origin-01..04,
+            see the generateDataLocal profile). nuva-pipeline then fails because Maven cannot resolve
+            dev.ikm.data.nuva:nuva-origin:${nuva-origin.version}:zip.
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>require-origin-inputs</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesExist>
+                                    <message>Licensed source file(s) not found in input.directory (${input.directory}). Download the files listed below, or set -Dinput.directory=&lt;dir&gt; and check source.version in pom.xml. See README-origin.md.</message>
+                                    <!-- One entry per expected source file; names come from the parent pom.xml properties. -->
+                                    <files>
+                                        <file>${input.directory}/${source.file.name}</file>
+                                        <file>${input.directory}/${additional.source.file.name}</file>
+                                    </files>
+                                </requireFilesExist>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+            Same id and activation as the references: active with -PgenerateDataLocal, or automatically when
+            -DaltDeploymentRepository is given. In the references this profile holds the real packaging; add it here
+            by implementing the four TODOs below.
+        -->
+        <profile>
+            <id>generateDataLocal</id>
+            <activation>
+                <property>
+                    <name>altDeploymentRepository</name>
+                </property>
+            </activation>
+        <!-- ============================================================================
+             DEVELOPER TODO [origin-01]: Unpack the source archives
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+             WHAT: Unzip (or copy, for non-archive inputs) every file named by `source.file.name` and `additional.source.file.name` from `input.directory` into `origin.working.directory`. Do not modify the input files.
+             INPUT: The licensed files in `input.directory` (default ~/Downloads); the enforcer rule above already guarantees they exist.
+             OUTPUT: A directory under ${project.build.directory} holding the unpacked source files.
+             EXAMPLE: ~/Downloads/NUVA_2025.zip (made-up name) -> target/origin-sources/NUVA_2025/<files>
+             DONE WHEN: After `mvn package` the unpacked files exist under target and the input files are unchanged.
+             REFERENCE: rxnorm-data/rxnorm-origin/pom.xml (profile generateDataLocal) and snomed-ct-data/snomed-ct-origin/pom.xml.
+             ============================================================================ -->
+
+        <!-- ============================================================================
+             DEVELOPER TODO [origin-02]: Select and filter the required release files
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+             WHAT: From the unpacked sources keep exactly the files the transformation needs (for example only the full release, not deltas or samples) so the origin artifact stays small and reproducible. Fail when a required file is absent.
+             INPUT: The directory produced by origin-01.
+             OUTPUT: A directory holding only the required files.
+             EXAMPLE: target/origin-sources/NUVA_2025/{full/concepts.txt, delta/concepts.txt} -> keep full/concepts.txt only (made-up layout).
+             DONE WHEN: The assembled zip contains the required files, none of the excluded ones, and the build fails naming a missing required file.
+             REFERENCE: snomed-ct-data/snomed-ct-origin/pom.xml and rxnorm-data/rxnorm-origin/pom.xml (assembly fileSets includes/excludes).
+             ============================================================================ -->
+
+        <!-- ============================================================================
+             DEVELOPER TODO [origin-03]: Produce the origin artifact
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+             WHAT: Zip the selected files as `src/...` plus META-INF/MANIFEST.MF, named nuva-origin-${nuva-origin.version}.zip, and attach it to the project so Maven installs it as dev.ikm.data.nuva:nuva-origin:zip. Add maven-assembly-plugin, build-helper-maven-plugin (attach-artifact) and flatten-maven-plugin to this profile; their versions are managed in the parent pom.xml.
+             INPUT: The selected files from origin-02, plus the packager.name, origin.url and origin.namespace properties for the manifest.
+             OUTPUT: ${project.build.directory}/nuva-origin-<version>.zip attached as type zip.
+             EXAMPLE: target/origin-sources/** -> nuva-origin-nuva-2025+1.0.0-SNAPSHOT.zip containing src/concepts.txt and META-INF/MANIFEST.MF (made-up names).
+             DONE WHEN: The zip exists after `mvn package`, contains src/ and META-INF/MANIFEST.MF, and nuva-pipeline's dependency:copy can resolve it.
+             REFERENCE: rxnorm-data/rxnorm-origin/pom.xml (maven-assembly-plugin inline descriptor, build-helper attach-artifact, flatten-maven-plugin).
+             ============================================================================ -->
+
+        <!-- ============================================================================
+             DEVELOPER TODO [origin-04]: Install locally or deploy the origin artifact
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+             WHAT: With profile generateDataLocal active, install the artifact into the local ~/.m2 repository (mvn install). When -DaltDeploymentRepository=<id>::<url> is given, deploy it to that repository (mvn deploy). Never deploy by default.
+             INPUT: The origin artifact from origin-03 and the Maven install/deploy settings.
+             OUTPUT: The artifact resolvable by coordinates dev.ikm.data.nuva:nuva-origin:${nuva-origin.version}:zip.
+             EXAMPLE: mvn clean install -PgenerateDataLocal -> ~/.m2/repository/dev/ikm/data/nuva/nuva-origin/<version>/nuva-origin-<version>.zip
+             DONE WHEN: After the command above nuva-pipeline resolves the artifact from ~/.m2, and a deploy run against a test repository publishes exactly one zip.
+             REFERENCE: rxnorm-data/README.md ("Run Origin Packaging") and rxnorm-data/rxnorm-origin/pom.xml (profile generateDataLocal, activated by property altDeploymentRepository).
+             ============================================================================ -->
+        </profile>
+    </profiles>
+</project>

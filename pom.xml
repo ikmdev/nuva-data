@@ -1,0 +1,310 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Same parent as snomed-ct-data, rxnorm-data and loinc-data. -->
+    <parent>
+        <groupId>dev.ikm.build</groupId>
+        <artifactId>java-parent</artifactId>
+        <version>1.64.0</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>dev.ikm.nuva</groupId>
+    <artifactId>nuva-data</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <name>NUVA Data</name>
+
+    <!--
+        Module order matters: the plugin is built first (starterdata and pipeline invoke its goals), nuva-origin before
+        nuva-pipeline (the pipeline copies the origin artifact), nuva-starterdata before the stages that read the data
+        store. The order mirrors rxnorm-data.
+    -->
+    <!-- ============================================================================
+         DEVELOPER TODO [setup-02]: Keep or drop the optional modules
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         WHAT: Decide which of nuva-starterdata, nuva-owl-transform, nuva-reasoner, nuva-integration and nuva-export this terminology needs. Remove each dropped module from the list below, from the stage list in run-data-pipeline.sh and run-data-pipeline.bat, and from doc/transformation-todo.md.
+         INPUT: The shape of the source data: whether it has OWL axioms (owl-transform), needs classification (reasoner) and is published as data store archives (export).
+         OUTPUT: A module list that contains only the stages you will implement.
+         EXAMPLE: No axioms in the source (made-up) -> drop nuva-owl-transform and nuva-reasoner.
+         DONE WHEN: `mvn clean install` and a dry run of run-data-pipeline.sh mention exactly the same stages, and no checklist entry refers to a removed module.
+         REFERENCE: rxnorm-data/pom.xml and loinc-data/pom.xml (their <modules> lists differ).
+         ============================================================================ -->
+    <modules>
+        <module>plugin</module>
+        <module>nuva-origin</module>
+        <module>nuva-starterdata</module>
+        <module>nuva-pipeline</module>
+        <module>nuva-owl-transform</module>
+        <module>nuva-reasoner</module>
+        <module>nuva-integration</module>
+        <module>nuva-export</module>
+    </modules>
+
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Minimum toolchain. Enforced by the maven-enforcer-plugin execution below. -->
+        <java.version>24</java.version>
+        <!-- Version of this build's own plugin. Not ${project.version}: that resolves per child, and origin/export override it. -->
+        <nuva-data.version>1.0.0-SNAPSHOT</nuva-data.version>
+        <maven.minimum.version>3.9.9</maven.minimum.version>
+
+        <!-- maven plugins and libraries (versions taken from the reference repositories) -->
+        <maven-artifacts.version>1.35.0</maven-artifacts.version>
+        <maven-assembly-plugin.version>3.7.1</maven-assembly-plugin.version>
+        <build-helper-maven-plugin.version>3.6.0</build-helper-maven-plugin.version>
+        <flatten-maven-plugin.version>1.7.2</flatten-maven-plugin.version>
+        <maven-plugin-plugin.version>3.15.1</maven-plugin-plugin.version>
+        <maven-plugin-annotations.version>3.15.1</maven-plugin-annotations.version>
+        <maven-plugin-api.version>3.9.9</maven-plugin-api.version>
+        <jupiter.version>5.12.2</jupiter.version>
+        <slf4j.version>2.0.17</slf4j.version>
+
+        <!-- ============================================================================
+             DEVELOPER TODO [setup-03]: Confirm the Tinkar versions and the base data store
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+             WHAT: Check that tinkar-core.version, tinkar-composer.version and the tinkar-starter-data.* properties
+                   still match the other data pipelines when you start, and bump them together if they moved.
+                   Decide whether NUVA starts from the base Tinkar starter data (as snomed-ct-data and loinc-data
+                   do) or from another data store; the latter changes nuva-starterdata/pom.xml.
+             INPUT: The current versions in rxnorm-data/pom.xml, loinc-data/pom.xml and snomed-ct-data/pom.xml.
+             OUTPUT: Version properties that equal the sibling pipelines' (or a documented reason why not).
+             EXAMPLE: tinkar-core.version 1.121.0 and tinkar-composer.version 1.8.0 (the values at scaffolding time).
+             DONE WHEN: `mvn clean install` resolves the Tinkar artifacts and nuva-starterdata builds a data store that
+                        the other pipelines' tooling can open.
+             REFERENCE: rxnorm-data/pom.xml, loinc-data/pom.xml (properties tinkar-core.version, tinkar-composer.version,
+                        tinkar-starter-data.*).
+             ============================================================================ -->
+        <!-- Tinkar libraries used by the transformation and starter-data plugins. Same versions as rxnorm-data and
+             loinc-data, so the data pipelines stay aligned: bump them together. -->
+        <tinkar-core.version>1.121.0</tinkar-core.version>
+        <tinkar-composer.version>1.8.0</tinkar-composer.version>
+
+        <!-- Base data store every starter-data module starts from (same artifact as snomed-ct-data and loinc-data). -->
+        <tinkar-starter-data.groupId>dev.ikm.data.tinkar</tinkar-starter-data.groupId>
+        <tinkar-starter-data.artifactId>tinkar-starter-data</tinkar-starter-data.artifactId>
+        <tinkar-starter-data.classifier>unreasoned-pb</tinkar-starter-data.classifier>
+        <tinkar-starter-data.version>20250915</tinkar-starter-data.version>
+
+        <!-- ============================================================================
+             DEVELOPER TODO [setup-01]: Replace the placeholder properties
+             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+             WHAT: Replace every placeholder in the origin section below: source.version, source.file.name,
+                   additional.source.file.name (delete it, and its entry in nuva-origin/pom.xml, if there is no second
+                   input file), packager.name, origin.url and origin.namespace.
+             INPUT: The licensed release you downloaded (its real file names and version label) and the data owner's
+                    publisher details. origin.namespace is a UUID you generate once and never change: it seeds every
+                    identifier the pipeline derives.
+             OUTPUT: A parent pom.xml without REPLACE_ME and without the nil-UUID namespace.
+             EXAMPLE: source.file.name NUVA_2025.zip (made-up) -> expected at ${input.directory}/NUVA_2025.zip.
+             DONE WHEN: `grep REPLACE_ME pom.xml` finds nothing, and building nuva-origin alone gets past the
+                        require-origin-inputs check with the real files in place.
+             REFERENCE: rxnorm-data/pom.xml and snomed-ct-data/pom.xml (origin properties).
+             ============================================================================ -->
+
+        <!-- ===================== origin ===================== -->
+        <!-- Directory that holds the licensed source files. Override with -Dinput.directory=/some/dir -->
+        <input.directory>${user.home}/Downloads</input.directory>
+
+        <!-- Version label of the licensed origin input. PLACEHOLDER: replace with the release you downloaded. -->
+        <source.version>REPLACE_ME</source.version>
+
+        <!-- Main origin input. PLACEHOLDER file name: replace with the real name of the licensed file. -->
+        <source.file.name>NUVA_${source.version}.zip</source.file.name>
+        <source.zip>${input.directory}/${source.file.name}</source.zip>
+
+        <!--
+            Additional source file (for example a mapping file, as gmdn.mapping.source.zip in snomed-ct-data).
+            PLACEHOLDER: replace the name, or delete this property and its entry in nuva-origin/pom.xml
+            if the pipeline needs only one input file.
+        -->
+        <additional.source.file.name>NUVA_ADDITIONAL_${source.version}.zip</additional.source.file.name>
+        <additional.source.zip>${input.directory}/${additional.source.file.name}</additional.source.zip>
+
+        <!--
+            Upstream terminology artifact versions, if this pipeline depends on another one
+            (for example snomedct.version in rxnorm-data). None is declared for NUVA yet.
+            <upstream.version>REPLACE_ME+1.0.0-SNAPSHOT</upstream.version>
+        -->
+
+        <!-- Version of the origin artifact: <artifactId>-<version>.zip, same pattern as rxnorm-origin.version. -->
+        <nuva-origin.version>nuva-${source.version}+1.0.0-SNAPSHOT</nuva-origin.version>
+
+        <!-- Working directory used while packaging the origin artifact. -->
+        <origin.working.directory>${project.build.directory}/origin-sources</origin.working.directory>
+
+        <!--
+            Data store shared by the pipeline stages (same properties as the references). Unlike the references it sits
+            in ./datastore, not ./target: building a single stage with the also-make option and clean also cleans the parent
+            project, which would delete a data store kept in ./target and break every later stage.
+        -->
+        <dataStoreLocation>${project.basedir}/../datastore</dataStoreLocation>
+        <dataStore>nuva</dataStore>
+
+        <!-- Origin manifest metadata. PLACEHOLDERS. -->
+        <packager.name>REPLACE_ME</packager.name>
+        <origin.url>REPLACE_ME</origin.url>
+        <!-- Namespace UUID used to derive identifiers. PLACEHOLDER (nil UUID): generate your own and keep it stable. -->
+        <origin.namespace>00000000-0000-0000-0000-000000000000</origin.namespace>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>dev.ikm.nuva</groupId>
+                <artifactId>nuva-transformation-maven-plugin</artifactId>
+                <version>${nuva-data.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.nuva</groupId>
+                <artifactId>nuva-starterdata-maven-plugin</artifactId>
+                <version>${nuva-data.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven</groupId>
+                <artifactId>maven-plugin-api</artifactId>
+                <version>${maven-plugin-api.version}</version>
+            </dependency>
+            <!-- Tinkar -->
+            <dependency>
+                <groupId>dev.ikm.tinkar</groupId>
+                <artifactId>composer</artifactId>
+                <version>${tinkar-composer.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.tinkar</groupId>
+                <artifactId>data-spinedarray-provider</artifactId>
+                <version>${tinkar-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.tinkar</groupId>
+                <artifactId>search-provider</artifactId>
+                <version>${tinkar-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.tinkar</groupId>
+                <artifactId>entity-provider</artifactId>
+                <version>${tinkar-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.tinkar</groupId>
+                <artifactId>executor-provider</artifactId>
+                <version>${tinkar-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>dev.ikm.tinkar.ext.owl</groupId>
+                <artifactId>owl-extension</artifactId>
+                <version>${tinkar-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.maven.plugin-tools</groupId>
+                <artifactId>maven-plugin-annotations</artifactId>
+                <version>${maven-plugin-annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${jupiter.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>dev.ikm.nuva</groupId>
+                    <artifactId>nuva-transformation-maven-plugin</artifactId>
+                    <version>${nuva-data.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>dev.ikm.nuva</groupId>
+                    <artifactId>nuva-starterdata-maven-plugin</artifactId>
+                    <version>${nuva-data.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>dev.ikm.maven.tinkar</groupId>
+                    <artifactId>tinkar-maven-plugin</artifactId>
+                    <version>${maven-artifacts.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-plugin-plugin</artifactId>
+                    <version>${maven-plugin-plugin.version}</version>
+                </plugin>
+                <!-- Managed for the developer who implements origin-03 (these are the plugins the references use). -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-assembly-plugin</artifactId>
+                    <version>${maven-assembly-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>build-helper-maven-plugin</artifactId>
+                    <version>${build-helper-maven-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>${flatten-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <executions>
+                    <!-- Same configuration as the references: do not enforce SemVer for this project. -->
+                    <execution>
+                        <id>enforce-no-bad-sections</id>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rulesToSkip>requireProperty</rulesToSkip>
+                            <failIfNoRules>false</failIfNoRules>
+                        </configuration>
+                    </execution>
+                    <!-- JDK 24+ and Maven 3.9.9+ (the references state these in their READMEs). -->
+                    <execution>
+                        <id>enforce-nuva-minimums</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireJavaVersion>
+                                    <version>[${java.version},)</version>
+                                </requireJavaVersion>
+                                <requireMavenVersion>
+                                    <version>[${maven.minimum.version},)</version>
+                                </requireMavenVersion>
+                            </rules>
+                            <fail>true</fail>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+
+    <!--
+        NOTE ON PROFILES (differs from the brief; see README.md):
+        * No repository URLs or credentials are declared here. Access to the Nexus repositories comes from the
+          developer's ~/.m2/settings.xml (see README.md).
+        * `generateDataLocal` lives in nuva-origin/pom.xml and nuva-export/pom.xml, as in the references.
+    -->
+</project>

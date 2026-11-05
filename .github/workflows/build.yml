@@ -1,0 +1,44 @@
+# EXPECTED TO BE RED ON THE SKELETON.
+# This workflow runs `mvn clean verify`, which fails in the nuva-origin module because the licensed source files are
+# not (and must never be) committed to this repository, and then at the first unimplemented TODO.
+# The unit tests in plugin/nuva-transformation-maven-plugin pass without any source data.
+#
+# To gate it until you are ready, use one of:
+#   * add `if: ${{ vars.ENABLE_BUILD == 'true' }}` to the `build-job` job and set that repository variable when ready, or
+#   * temporarily change the Maven command to `mvn test -Dmaven.build.cache.enabled=false` (no origin needed).
+# This workflow has no deploy steps and uses no secrets. Add them in a separate workflow when you need to publish.
+name: Build Workflow
+
+run-name: 'Build Workflow -- ${{ github.head_ref || github.ref_name }}'
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-job:
+    name: Build Job
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 24
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '24'
+
+      - name: Cache local Maven repository
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: maven-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            maven-${{ runner.os }}-
+
+      - name: Build
+        run: mvn clean verify -Dmaven.build.cache.enabled=false

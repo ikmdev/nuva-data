@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.ikm.nuva</groupId>
+        <artifactId>nuva-data</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nuva-owl-transform</artifactId>
+    <packaging>pom</packaging>
+
+    <name>nuva-owl-transform</name>
+
+    <!-- PLACEHOLDER: no build logic yet. Add the plugin configuration below when you implement this stage. -->
+    <!-- ============================================================================
+         DEVELOPER TODO [owl-01]: Run the optional OWL transformation
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         WHAT: Convert stated relationships/axioms in the data store into the OWL form the reasoner needs. Drop this module if the terminology has no axioms.
+         INPUT: The data store written by nuva-pipeline.
+         OUTPUT: The same data store, now containing the OWL representation.
+         EXAMPLE: Data store with 3 stated relationships (made-up) -> 3 OWL axioms stored.
+         DONE WHEN: Running the module twice on a fixture data store gives the same axiom count, and running it without the data store fails with the missing path.
+         REFERENCE: rxnorm-data/rxnorm-owl-transform/pom.xml (tinkar-maven-plugin goal run-owl-transformer).
+         ============================================================================ -->
+</project>

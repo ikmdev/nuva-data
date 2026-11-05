@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.ikm.nuva</groupId>
+        <artifactId>nuva-data</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nuva-pipeline</artifactId>
+    <packaging>jar</packaging>
+
+    <name>nuva-pipeline</name>
+
+    <!--
+        SKELETON. Copies the origin artifact with maven-dependency-plugin (as the references do), then runs the
+        transformation at `install`. If the origin artifact dev.ikm.data.nuva:nuva-origin:${nuva-origin.version}:zip
+        does not exist yet (nuva-origin packaging is TODO origin-01..04, or source.version is wrong), the build fails
+        in copy-origin-data with Maven's own "Could not find artifact" error. `mvn test` and `mvn compile` never reach
+        it. Until the transformation stages are implemented, run-nuva-transformation fails with the first TODO ID.
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-origin-data</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy</goal>
+                        </goals>
+                        <configuration>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>dev.ikm.data.nuva</groupId>
+                                    <artifactId>nuva-origin</artifactId>
+                                    <version>${nuva-origin.version}</version>
+                                    <type>zip</type>
+                                    <destFileName>nuva-origin.zip</destFileName>
+                                </artifactItem>
+                            </artifactItems>
+                            <outputDirectory>${project.build.directory}/origin</outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>dev.ikm.nuva</groupId>
+                <artifactId>nuva-transformation-maven-plugin</artifactId>
+                <configuration>
+                    <namespaceString>${origin.namespace}</namespaceString>
+                    <originZip>${project.build.directory}/origin/nuva-origin.zip</originZip>
+                    <dataOutputPath>${project.build.directory}</dataOutputPath>
+                    <datastorePath>${dataStoreLocation}/${dataStore}</datastorePath>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>run-nuva-transformation</id>
+                        <phase>install</phase>
+                        <goals>
+                            <goal>run-nuva-transformation</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

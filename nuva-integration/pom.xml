@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.ikm.nuva</groupId>
+        <artifactId>nuva-data</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>nuva-integration</artifactId>
+    <packaging>pom</packaging>
+
+    <name>nuva-integration</name>
+
+    <!-- PLACEHOLDER: no build logic yet. Add the plugin configuration below when you implement this stage. -->
+    <!-- ============================================================================
+         DEVELOPER TODO [integration-01]: Add integration checks
+         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+         WHAT: Add integration tests (failsafe) that open the finished data store and assert concepts, descriptions and relationships match the source.
+         INPUT: The data store after the reasoner (or after nuva-pipeline if there is no reasoner).
+         OUTPUT: Passing integration tests; a failing one fails the build.
+         EXAMPLE: Concept ABC1 (made-up) exists with its expected description text.
+         DONE WHEN: At least one test per kind (concept, description, relationship) runs against the data store and fails if the data store is absent.
+         REFERENCE: rxnorm-data/rxnorm-integration/pom.xml and rxnorm-data/rxnorm-integration/src/test/java/dev/ikm/tinkar/rxnorm/integration/ (AbstractIntegrationTest and the *SemanticIT classes).
+         ============================================================================ -->
+</project>
